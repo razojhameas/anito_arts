@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ANITO v1.0 | Jhames Rianne G. Razo</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --neon: #00f2ff; --bg: #050508; --hot: #ff0055; --glass: rgba(10, 10, 15, 0.95); }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background: var(--bg); overflow: hidden; font-family: 'Inter', sans-serif; color: white; touch-action: none; }
+        body.no-cursor { cursor: none; }
+        
+        .overlay { position: absolute; z-index: 10; pointer-events: auto; }
+        .header { top: 30px; left: 30px; pointer-events: none; border-left: 2px solid var(--neon); padding-left: 20px; }
+        .header h1 { margin: 0; font-size: 24px; letter-spacing: 5px; font-weight: 900; }
+        .header p { margin: 0; font-size: 10px; color: var(--neon); letter-spacing: 1px; }
+
+        .top-right { top: 30px; right: 30px; display: flex; gap: 12px; }
+        .control-dock { 
+            bottom: 30px; left: 50%; transform: translateX(-50%); 
+            background: var(--glass); border: 1px solid rgba(0, 242, 255, 0.2);
+            padding: 12px 20px; border-radius: 50px; display: flex; gap: 15px; align-items: center;
+            backdrop-filter: blur(20px); box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        #pause-indicator {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 5;
+            display: none; align-items: center; justify-content: center;
+            pointer-events: none; border: 2px solid var(--hot);
+        }
+        #pause-indicator span { 
+            font-size: 40px; font-weight: 900; color: var(--hot); letter-spacing: 10px; 
+            text-transform: uppercase; animation: blink 1s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        button { 
+            background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #fff;
+            padding: 10px 18px; cursor: pointer; font-size: 11px; font-weight: 700;
+            transition: 0.2s; border-radius: 30px; display: flex; align-items: center; gap: 8px; text-transform: uppercase;
+        }
+        button:hover { border-color: var(--neon); color: var(--neon); }
+        button.active { background: var(--hot); border-color: var(--hot); }
+
+        .modal { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .gateway-box { text-align: center; max-width: 400px; padding: 40px; border: 1px solid #111; position: relative; }
+        
+        #aboutModal .modal-content { 
+            max-width: 600px; background: #08080a; border: 1px solid #1a1a1c; padding: 40px; 
+            max-height: 80vh; overflow-y: auto; line-height: 1.7; font-size: 14px;
+        }
+
+        canvas { display: block; touch-action: none; }
+        kbd { font-family: monospace; color: var(--neon); background: rgba(0,242,255,0.1); padding: 2px 4px; border-radius: 2px; font-size: 9px; margin-left: 5px; }
+        
+        @media (max-width: 768px) {
+            .control-dock { bottom: 20px; width: 90%; flex-wrap: wrap; justify-content: center; border-radius: 15px; }
+            kbd { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="pause-indicator"><span>PAUSED</span></div>
+
+<div class="overlay header">
+    <h1 id="brand">ANITO v1.0</h1>
+    <p id="sub-brand">TECHNO-SPIRITUAL SYMMETRY</p>
+</div>
+
+<div class="overlay top-right">
+    <button id="langBtn">EN / TL</button>
+    <button id="noteBtn"><i data-lucide="info" style="width:16px"></i></button>
+</div>
+
+<div class="overlay control-dock">
+    <button id="initBtn"><span data-t="init">INITIALIZE</span> <kbd>SPACE</kbd></button>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <i data-lucide="volume-2" style="width:14px; opacity:0.5"></i>
+        <input type="range" id="volSlider" min="0" max="0.5" step="0.01" value="0.15" style="width:60px; accent-color:var(--neon)">
+    </div>
+    <button id="modeBtn"><span data-t="mode">SHAPE</span>: <span id="modeName">WEAVE</span> <kbd>M</kbd></button>
+    <button id="originBtn"><span data-t="origin">ORIGIN</span>: <span id="originName">CENTER</span> <kbd>P</kbd></button>
+    <button id="cursorBtn"><i data-lucide="mouse-pointer-2" style="width:14px"></i> <kbd>C</kbd></button>
+    <button id="recordBtn" style="display:none;"><span data-t="rec">REC</span> <kbd>R</kbd></button>
+    <button id="stopBtn" style="display:none; color: var(--hot);"><span data-t="pause">PAUSE</span> <kbd>S</kbd></button>
+</div>
+
+<div id="gateway" class="modal">
+    <div class="gateway-box">
+        <h2 style="letter-spacing: 8px;">ANITO</h2>
+        <p style="font-size: 10px; color: #444; margin-bottom: 30px;">SYSTEM v1.0 // STEM-CPAR</p>
+        <button id="startRitual" style="width:100%; justify-content:center; border-color:var(--neon); color:var(--neon)"><span data-t="startBtn">BEGIN INITIALIZATION</span></button>
+    </div>
+</div>
+
+<div id="aboutModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h2 data-t="docTitle" style="color: var(--neon); margin-top: 0;">Project Documentation</h2>
+        <p><strong><span data-t="creator">Creator</span>:</strong> Jhames Rianne G. Razo</p>
+        <p data-t="aboutP1">In fulfillment of the Contemporary Philippine Arts from the Regions (CPAR) multimedia art activity. I felt this was a project that is very representative of what the strand STEM is all about.</p>
+        <hr style="border: 0; border-top: 1px solid #111; margin: 20px 0;">
+        <p><strong>The "Anito" Concept:</strong> <span id="anito-text"></span></p>
+        <p><strong>Technical Context:</strong> <span data-t="aboutP3">Inspired by the p5.js philosophy of creative sketching, this project utilizes a custom 60FPS Vanilla JS engine. It calculates 8-way symmetry in real-time to mimic the complexity of traditional regional weaves through modern mathematical algorithms.</span></p>
+        <button id="closeAbout" style="margin-top: 30px; width: 100%; justify-content: center;"><span data-t="close">CLOSE</span></button>
+    </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+    let lang = 'EN', mode = 0, originMode = 'CENTER', isSimulating = false, audioCtx, osc, gainNode, destination, mediaRecorder, chunks = [];
+    const modes = ['WEAVE', 'ORBIT', 'BURST', 'LATTICE', 'ECHO'];
+    const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+    
+    const translations = {
+        EN: {
+            sub: "TECHNO-SPIRITUAL SYMMETRY", init: "INITIALIZE", mode: "SHAPE", origin: "ORIGIN", rec: "REC", pause: "PAUSE", startBtn: "BEGIN INITIALIZATION",
+            docTitle: "Project Documentation", creator: "Creator", close: "CLOSE",
+            aboutP1: "In fulfillment of the Contemporary Philippine Arts from the Regions (CPAR) multimedia art activity. I felt this was a project that is very representative of what the strand STEM is all about.",
+            anito: "Our ancestors believed in unseen energies and spirits that inhabited the natural world, that is, Anito. In this work, let's just say that \"Anito\" is the code itself, something invisible, but given form through interaction. The visuals are more cybernetic and geometric, rather than \"spirit-like,\" because the Anito of this little website is not the traditional spirit, but the spirit of our current technological age.",
+            aboutP3: "Inspired by the p5.js philosophy of creative sketching, this project utilizes a custom 60FPS Vanilla JS engine. It calculates 8-way symmetry in real-time to mimic the complexity of traditional regional weaves through modern mathematical algorithms.",
+            center: "CENTER", cursor: "CURSOR"
+        },
+        TL: {
+            sub: "TECHNO-SPIRITUAL SYMMETRY (di ko alam kung ano to sa tagalog)", init: "SIMULAN", mode: "HUGIS", origin: "PINAGMULAN", rec: "REKORD", pause: "ITIGIL", startBtn: "SIMULAN ANG PAG-INSTALL",
+            docTitle: "Dokumentasyon ng Proyekto", creator: "Tagalikha", close: "ISARA",
+            aboutP1: "Bilang katuparan sa gawaing multimedia sa asignaturang Contemporary Philippine Arts from the Regions (CPAR). Naniniwala ako na ang proyektong ito ay sumasalamin sa tunay na kahulugan ng STEM strand.",
+            anito: "Ang ating mga ninuno ay naniniwala sa mga hindi nakikitang enerhiya at espiritu na nananahan sa mundo, iyon ay ang Anito. Sa gawang ito, sabihin na lang natin na \"Anito\" is the code itself, isang bagay na hindi nakikita, pero may form dahil sa interaction. Mas cybernetic at geometric ang visuals, kaysa \"spirit-like,\" dahil ang Anito ng website na ito ay hindi ang tradisyunal na espiritu, kundi ang spirit ng ating kasalukuyang technological age.",
+            aboutP3: "Inspirado sa pilosopiya ng p5.js, gumagamit ang proyektong ito ng custom na 60FPS Vanilla JS engine. Kinakalkula nito ang 8-way symmetry sa real-time upang gayahin ang disenyo ng mga tradisyunal na habi gamit ang modernong matematika.",
+            center: "GITNA", cursor: "CURSOR"
+        }
+    };
+
+    function updateLanguage() {
+        document.querySelectorAll('[data-t]').forEach(el => {
+            const key = el.getAttribute('data-t');
+            el.innerText = translations[lang][key];
+        });
+        document.getElementById('sub-brand').innerText = translations[lang].sub;
+        document.getElementById('anito-text').innerText = translations[lang].anito;
+        document.getElementById('originName').innerText = translations[lang][originMode.toLowerCase()];
+    }
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; ctx.fillStyle = '#050508'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    window.addEventListener('resize', resize); resize();
+
+    function setupAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            osc = audioCtx.createOscillator(); gainNode = audioCtx.createGain(); destination = audioCtx.createMediaStreamDestination();
+            osc.type = 'triangle'; osc.connect(gainNode); gainNode.connect(audioCtx.destination); gainNode.connect(destination);
+            osc.start(); isSimulating = true;
+            document.getElementById('initBtn').style.display = 'none';
+            document.getElementById('recordBtn').style.display = 'flex';
+            document.getElementById('stopBtn').style.display = 'flex';
+            updateLanguage();
+            if (!/Mobi|Android/i.test(navigator.userAgent)) setupRecording();
+        }
+    }
+
+    function setupRecording() {
+        try {
+            const stream = new MediaStream([...canvas.captureStream(60).getVideoTracks(), ...destination.stream.getAudioTracks()]);
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'anito_capture.webm'; a.click();
+                chunks = [];
+            };
+        } catch(e) {}
+    }
+
+    function handleInteraction(e) {
+        if (!isSimulating || document.hidden) return;
+        const touch = e.touches ? e.touches[0] : e;
+        const x = touch.clientX, y = touch.clientY;
+        ctx.fillStyle = 'rgba(5, 5, 8, 0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const cx = originMode === 'CENTER' ? canvas.width / 2 : x;
+        const cy = originMode === 'CENTER' ? canvas.height / 2 : y;
+        const dx = x - (canvas.width/2), dy = y - (canvas.height/2); 
+        ctx.strokeStyle = `hsl(${(Date.now()/30)%360}, 100%, 70%)`; ctx.lineWidth = 1.5;
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI / 4) * i;
+            const rx = (x - (canvas.width/2)) * Math.cos(angle) - (y - (canvas.height/2)) * Math.sin(angle);
+            const ry = (x - (canvas.width/2)) * Math.sin(angle) + (y - (canvas.height/2)) * Math.cos(angle);
+            ctx.beginPath();
+            if(mode === 0) { ctx.moveTo(cx, cy); ctx.quadraticCurveTo(cx + rx/2, cy - ry/2, cx + rx, cy + ry); }
+            else if (mode === 1) { ctx.arc(cx + rx, cy + ry, Math.abs(dx/15), 0, Math.PI*2); }
+            else if (mode === 2) { ctx.rect(cx + rx - 3, cy + ry - 3, 6, 6); ctx.lineTo(cx, cy); }
+            else if (mode === 3) { ctx.moveTo(cx + rx, 0); ctx.lineTo(cx + rx, canvas.height); ctx.moveTo(0, cy + ry); ctx.lineTo(canvas.width, cy + ry); }
+            else { ctx.arc(cx, cy, Math.sqrt(rx*rx + ry*ry), angle, angle + 0.35); }
+            ctx.stroke();
+        }
+        osc.frequency.setTargetAtTime(65 + Math.sqrt(dx*dx + dy*dy), audioCtx.currentTime, 0.1);
+        gainNode.gain.setTargetAtTime(document.getElementById('volSlider').value, audioCtx.currentTime, 0.1);
+    }
+
+    canvas.addEventListener('mousemove', handleInteraction);
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleInteraction(e); }, {passive: false});
+
+    document.getElementById('langBtn').onclick = () => { lang = lang === 'EN' ? 'TL' : 'EN'; updateLanguage(); };
+    document.getElementById('initBtn').onclick = setupAudio;
+    document.getElementById('startRitual').onclick = () => { document.getElementById('gateway').style.display = 'none'; setupAudio(); };
+    document.getElementById('modeBtn').onclick = () => { mode = (mode + 1) % modes.length; document.getElementById('modeName').innerText = modes[mode]; };
+    document.getElementById('originBtn').onclick = () => { 
+        originMode = originMode === 'CENTER' ? 'CURSOR' : 'CENTER'; 
+        document.getElementById('originName').innerText = translations[lang][originMode.toLowerCase()]; 
+    };
+    document.getElementById('cursorBtn').onclick = () => { document.body.classList.toggle('no-cursor'); };
+    document.getElementById('stopBtn').onclick = () => { 
+        isSimulating = !isSimulating; 
+        document.getElementById('pause-indicator').style.display = isSimulating ? 'none' : 'flex';
+        if(!isSimulating && gainNode) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+    };
+    document.getElementById('recordBtn').onclick = function() {
+        if(mediaRecorder.state === 'inactive') { mediaRecorder.start(); this.classList.add('active'); }
+        else { mediaRecorder.stop(); this.classList.remove('active'); }
+    };
+    document.getElementById('noteBtn').onclick = () => { updateLanguage(); document.getElementById('aboutModal').style.display = 'flex'; };
+    document.getElementById('closeAbout').onclick = () => document.getElementById('aboutModal').style.display = 'none';
+
+    window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if(k === ' ') { e.preventDefault(); setupAudio(); }
+        if(k === 'm') document.getElementById('modeBtn').click();
+        if(k === 'p') document.getElementById('originBtn').click();
+        if(k === 's') document.getElementById('stopBtn').click();
+    });
+
+    lucide.createIcons();
+    updateLanguage();
+</script>
+</body>
+</html>
